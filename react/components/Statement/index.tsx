@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 
 import SubjectAtom, { SubjectOptions } from './Atoms/SubjectAtom'
 import VerbAtom from './Atoms/VerbAtom'
@@ -20,6 +20,8 @@ type Props = {
   subjectPlaceholder: string
 }
 
+const STATEMENT_ROW_MAX_HEIGHT = 90
+
 const Statement: React.FC<Props> = ({
   isFullWidth = false,
   isRtl,
@@ -30,6 +32,12 @@ const Statement: React.FC<Props> = ({
   statement = { subject: '', verb: '', object: null, error: null },
   subjectPlaceholder,
 }) => {
+  const [componentHeight, setComponentHeight] = useState(0)
+  const ref = useRef(null)
+  useEffect(() => {
+    setComponentHeight(ref?.current?.getBoundingClientRect().height)
+  }, [statement])
+
   const verbOptions =
     statement.subject &&
     options[statement.subject].verbs.find(verb => verb.value === statement.verb)
@@ -88,13 +96,28 @@ const Statement: React.FC<Props> = ({
     />,
   ]
 
+  let firstRowAtoms: JSX.Element[], maybeSecondRowAtoms: JSX.Element[]
+  if (componentHeight > STATEMENT_ROW_MAX_HEIGHT) {
+    firstRowAtoms = isRtl
+      ? statementAtoms.slice(-1)
+      : statementAtoms.slice(0, 2)
+    maybeSecondRowAtoms = isRtl
+      ? statementAtoms.slice(0, 2)
+      : statementAtoms.slice(-1)
+  } else {
+    firstRowAtoms = isRtl ? statementAtoms.reverse() : statementAtoms
+  }
+
   return (
     <div className="flex-column w-100 mv6 mv3-ns">
-      <div
-        className={`flex w-100 items-start ${
-          isFullWidth ? 'flex-column items-stretch' : ''
-        }`}>
-        {isRtl ? statementAtoms.reverse() : statementAtoms}
+      <div ref={ref}>
+        <div
+          className={`flex w-100 items-start ${
+            isFullWidth ? 'flex-column items-stretch' : ''
+          }`}>
+          {firstRowAtoms}
+        </div>
+        <div className="flex-auto mv3">{maybeSecondRowAtoms}</div>
       </div>
       {statement.error && (
         <div className="red t-small mh3 mt2 lh-title">{statement.error}</div>
